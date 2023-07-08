@@ -9,8 +9,8 @@ import Foundation
 
 public struct StunResult {
     
-    private(set) var natType: NatType
-    private(set) var ipAddr: SocketAddress?
+    public private(set) var natType: NatType
+    public private(set) var ipAddr: SocketAddress?
     
     init(natType: NatType, ipAddr: SocketAddress? = nil) {
         self.natType = natType

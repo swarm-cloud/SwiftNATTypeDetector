@@ -5,7 +5,7 @@
 //  Created by timmy on 2023/7/6.
 //
 
-enum StunMessageType: UInt {
+public enum StunMessageType: UInt {
     
     // STUN message is binding request.
     case BindingRequest = 0x0001

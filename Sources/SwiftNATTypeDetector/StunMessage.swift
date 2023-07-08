@@ -26,16 +26,16 @@ prefix func ++(lhs: inout Int) -> Int {
 
 public class StunMessage {
  
-    private(set) var transactionId: [UInt8]
-    private(set) var type: StunMessageType = .BindingRequest
+    public private(set) var transactionId: [UInt8]
+    public private(set) var type: StunMessageType = .BindingRequest
     private(set) var magicCookie: Int = 0
  
-    private(set) var mappedAddress: SocketAddress?
-    private(set) var responseAddress: SocketAddress?
-    private(set) var sourceAddress: SocketAddress?
-    private(set) var changedAddress: SocketAddress?
-    private(set) var changeRequest: StunChangeRequest?
-    private(set) var errorCode: StunErrorCode?
+    public private(set) var mappedAddress: SocketAddress?
+    public private(set) var responseAddress: SocketAddress?
+    public private(set) var sourceAddress: SocketAddress?
+    public private(set) var changedAddress: SocketAddress?
+    public private(set) var changeRequest: StunChangeRequest?
+    public private(set) var errorCode: StunErrorCode?
     
     private enum AttributeType: UInt {
         

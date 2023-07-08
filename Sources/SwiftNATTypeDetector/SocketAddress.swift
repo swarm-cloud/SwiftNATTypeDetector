@@ -8,8 +8,8 @@
 import Foundation
 
 public struct SocketAddress {
-    private(set) var ip: String
-    private(set) var port: Int
+    public private(set) var ip: String
+    public private(set) var port: Int
     
     init(ip: String, port: Int) {
         self.ip = ip

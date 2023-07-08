@@ -8,8 +8,8 @@
 import Foundation
 
 public struct StunErrorCode {
-    private(set) var code: Int
-    private(set) var reasonText: String
+    public private(set) var code: Int
+    public private(set) var reasonText: String
     
     init(code: Int, reasonText: String) {
         self.code = code

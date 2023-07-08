@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum NatType {
+public enum NatType {
     
     // UDP is always blocked.
     case UdpBlocked

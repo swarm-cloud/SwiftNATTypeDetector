@@ -12,6 +12,7 @@ enum TransactionError: Error {
     case transactionException(msg: String)
 }
 
+@available(iOS 12.0, *)
 @available(macOS 10.14, *)
 public class StunClient {
     private static let UDP_SEND_COUNT: Int = 2

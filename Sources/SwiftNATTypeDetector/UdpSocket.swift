@@ -25,16 +25,19 @@ public class UdpSocket {
                 self.ready = true
                 sema.signal()
             }
-//            case .setup:
+            case .setup:
 //                print("State: Setup\n")
-//            case .cancelled:
-//                print("State: Cancelled\n")
-//            case .preparing:
+                break
+            case .cancelled:
+//                print("UdpSocket State: Cancelled\n")
+                break
+            case .preparing:
 //                print("State: Preparing\n")
+                break
 //            case .waiting(let error):
 //                print(error.localizedDescription)
             default:
-                print("ERROR! State not defined!\n")
+                print("UdpSocket ERROR! State not defined: \(newState)")
                 sema.signal()
             }
         }

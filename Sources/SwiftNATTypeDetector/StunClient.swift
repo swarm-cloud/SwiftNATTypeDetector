@@ -14,7 +14,7 @@ enum TransactionError: Error {
 
 @available(macOS 10.14, *)
 public class StunClient {
-    private static let UDP_SEND_COUNT: Int = 3
+    private static let UDP_SEND_COUNT: Int = 2
     private static let TRANSACTION_TIMEOUT: Int = 1000
     private static let DEFAULT_STUN_HOST: String = "stun.cdnbye.com"
     private static let DEFAULT_STUN_PORT: Int = 3478
@@ -87,83 +87,70 @@ public class StunClient {
             let test1 = StunMessage(type: StunMessageType.BindingRequest);
             let test1Response = try doTransaction(request: test1, remoteEndPoint: remoteEndPoint, timeout: .milliseconds(TRANSACTION_TIMEOUT))
             // UDP blocked.
-            if (test1Response == nil) {
-                print("test1Response == nil")
+            guard let test1Resp = test1Response else {
                 return StunResult(natType: .UdpBlocked)
             }
-            if (test1Response!.mappedAddress == nil) {
-                print("test1Response mappedAddress == nil")
+
+            guard let test1ResponseMapedAddress = test1Resp.mappedAddress else {
                 return StunResult(natType: .Unknown)
             }
-            
-            let test1ResponseMapedAddress = test1Response!.mappedAddress!
             
             // Test II
             let test2 = StunMessage(type: StunMessageType.BindingRequest, changeRequest: StunChangeRequest(changeIp: true, changePort: true))
             
             // No NAT.
-            if (localIP.toUint8Array().elementsEqual(test1Response!.mappedAddress!.ip.toUint8Array())) {
+            if localIP.toUint8Array().elementsEqual(test1ResponseMapedAddress.ip.toUint8Array()) {
                 // IP相同
                 let test2Response = try doTransaction(request: test2, remoteEndPoint: remoteEndPoint, timeout: .milliseconds(TRANSACTION_TIMEOUT))
                 // Open Internet.
-                if (test2Response != nil) {
-                    return StunResult(natType: .OpenInternet, ipAddr: test1Response!.mappedAddress)
-                } else {
-                    // Symmetric UDP firewall.
-                    return StunResult(natType: .SymmetricUdpFirewall, ipAddr: test1Response!.mappedAddress)
+                if test2Response != nil {
+                    return StunResult(natType: .OpenInternet, ipAddr: test1Resp.mappedAddress)
                 }
+                // Symmetric UDP firewall.
+                return StunResult(natType: .SymmetricUdpFirewall, ipAddr: test1Resp.mappedAddress)
             } else {
                 // NAT
                 let test2Response = try doTransaction(request: test2, remoteEndPoint: remoteEndPoint, timeout: .milliseconds(TRANSACTION_TIMEOUT))
                 // Full cone NAT.
-                if (test2Response != nil) {
-                    return StunResult(natType: .FullCone, ipAddr: test1Response!.mappedAddress)
-                } else {
-                    /*
-                            If no response is received, it performs test I again, but this time, does so to
-                            the address and port from the CHANGED-ADDRESS attribute from the response to test I.
-                        */
-                    if (test1Response!.changedAddress == nil) {
-                        print("changedAddress == nil")
-                        return StunResult(natType: .Unknown)
-                    }
-                    let test1ResponseChangedAddress = test1Response!.changedAddress!
-                    print("test1ResponseChangedAddress")
-                    print(test1ResponseChangedAddress.ip)
-                    print(test1ResponseChangedAddress.port)
-                    // Test I(II)
-                    let test12 = StunMessage(type: StunMessageType.BindingRequest)
-                    let test12Response = try doTransaction(request: test12, remoteEndPoint: test1ResponseChangedAddress, timeout: .milliseconds(TRANSACTION_TIMEOUT))
-                    if (test12Response == nil) {
-                        print("STUN Test I(II) didn't get response !")
-                        throw TransactionError.transactionException(msg: "STUN Test I(II) didn't get response !")
-                    } else {
-                        if (test12Response!.mappedAddress == nil) {
-                            print("test12Response changedAddress == nil")
-                            return StunResult(natType: .Unknown)
-                        }
-                        // Symmetric NAT
-                        let test12ResponseAddress = test12Response!.mappedAddress!
-                        if (!(test12ResponseAddress.ip.toUint8Array().elementsEqual(test1ResponseMapedAddress.ip.toUint8Array())
-                              && test12ResponseAddress.port == test1ResponseMapedAddress.port)) {
-                            return StunResult(natType: .Symmetric, ipAddr: test1ResponseMapedAddress)
-                        } else {
-                            // Test III
-                            let test3 = StunMessage(type: StunMessageType.BindingRequest, changeRequest: StunChangeRequest(changeIp: false, changePort: true))
-                            let test3Response = try doTransaction(request: test3, remoteEndPoint: test1ResponseChangedAddress, timeout: .milliseconds(TRANSACTION_TIMEOUT))
-                            // Restricted
-                            if (test3Response != nil) {
-                                return StunResult(natType: .RestrictedCone, ipAddr: test1ResponseMapedAddress)
-                            } else {
-                                // Port restricted
-                                return StunResult(natType: .PortRestrictedCone, ipAddr: test1ResponseMapedAddress)
-                            }
-                        }
-                    }
+                if test2Response != nil {
+                    return StunResult(natType: .FullCone, ipAddr: test1Resp.mappedAddress)
                 }
+                /*
+                        If no response is received, it performs test I again, but this time, does so to
+                        the address and port from the CHANGED-ADDRESS attribute from the response to test I.
+                    */
+                guard let test1ResponseChangedAddress = test1Resp.changedAddress else {
+                    return StunResult(natType: .Unknown)
+                }
+
+                // Test I(II)
+                let test12 = StunMessage(type: StunMessageType.BindingRequest)
+                let test12Response = try doTransaction(request: test12, remoteEndPoint: test1ResponseChangedAddress, timeout: .milliseconds(TRANSACTION_TIMEOUT))
+                
+                guard let test12Resp = test12Response else {
+                    throw TransactionError.transactionException(msg: "STUN Test I(II) didn't get response !")
+                }
+                
+                guard let test12ResponseMappedAddress = test12Resp.mappedAddress else {
+                    return StunResult(natType: .Unknown)
+                }
+                
+                // Symmetric NAT
+                if !(test12ResponseMappedAddress.ip.toUint8Array().elementsEqual(test1ResponseMapedAddress.ip.toUint8Array())
+                      && test12ResponseMappedAddress.port == test1ResponseMapedAddress.port) {
+                    return StunResult(natType: .Symmetric, ipAddr: test1ResponseMapedAddress)
+                }
+                // Test III
+                let test3 = StunMessage(type: StunMessageType.BindingRequest, changeRequest: StunChangeRequest(changeIp: false, changePort: true))
+                let test3Response = try doTransaction(request: test3, remoteEndPoint: test1ResponseChangedAddress, timeout: .milliseconds(TRANSACTION_TIMEOUT))
+                // Restricted
+                if test3Response != nil {
+                    return StunResult(natType: .RestrictedCone, ipAddr: test1ResponseMapedAddress)
+                }
+                // Port restricted
+                return StunResult(natType: .PortRestrictedCone, ipAddr: test1ResponseMapedAddress)
             }
         } catch let error {
-            print(error.localizedDescription)
             return StunResult(natType: .Unknown)
         }
         
@@ -172,11 +159,7 @@ public class StunClient {
     // Does STUN transaction. Returns transaction response or null if transaction failed.
     // Returns transaction response or null if transaction failed.
     private static func doTransaction(request: StunMessage, remoteEndPoint: SocketAddress, timeout: DispatchTimeInterval) throws -> StunMessage? {
-        print("doTransaction")
         let requestBytes: [UInt8] = request.toByteData()
-//        for item in requestBytes {
-//            print(item)
-//        }
         var revResponse = false
         var receiveCount: Int = 0
         let response = StunMessage()
@@ -186,25 +169,19 @@ public class StunClient {
             }
             let socket = UdpSocket(remoteEndPoint.ip, remoteEndPoint.port)
             let receiveBuffer = socket.sendUDP(Data(bytes: requestBytes, count: requestBytes.count))
-            if let buf = receiveBuffer {
-                try response.parse([UInt8](buf))
-            } else {
-                print("continue!")
+            guard let buf = receiveBuffer else {
                 continue
             }
-            if (response.transactionId.elementsEqual(request.transactionId)) {
+            
+            try response.parse([UInt8](buf))
+            
+            if response.transactionId.elementsEqual(request.transactionId) {
                 revResponse = true
             } else {
-                print("transactionIdNotMatch")
                 throw TransactionError.transactionIdNotMatch
             }
         }
-        
-        if (revResponse) {
-            return response
-        }
-        
-        return nil
-            
+
+        return revResponse ? response : nil
     }
 }

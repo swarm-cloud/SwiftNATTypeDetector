@@ -101,8 +101,7 @@ public class StunMessage {
            The message length is the count, in bytes, of the size of the
            message, not including the 20 byte header.
         */
-        if (data.count < 20) {
-            print("Invalid STUN message value !")
+        guard data.count >= 20 else {
             throw StunMessageError.IllegalArgumentException(msg: "Invalid STUN message value !")
         }
         
@@ -112,8 +111,6 @@ public class StunMessage {
         
         // STUN Message Type
         let messageType = UInt(exactly: Int(data[offset++]) << 8 | Int(data[offset++]))!
-//        print("messageType")
-//        print(StunMessageType(rawValue: messageType))
         switch messageType {
         case StunMessageType.BindingErrorResponse.rawValue:
             self.type = StunMessageType.BindingErrorResponse
@@ -133,15 +130,12 @@ public class StunMessage {
         case StunMessageType.SharedSecretResponse.rawValue:
             self.type = StunMessageType.SharedSecretResponse
             
-            
         default:
-            print("Invalid STUN message type value !")
             throw StunMessageError.IllegalArgumentException(msg: "Invalid STUN message type value !")
         }
         
         // Message Length
         let messageLength = Int(data[offset++]) << 8 | Int(data[offset++])
-        print("messageLength \(messageLength)")
         
         // Magic Cookie
         self.magicCookie = Int(data[offset++]) << 24 | Int(data[offset++]) << 16 | Int(data[offset++]) << 8 | Int(data[offset++])
@@ -169,16 +163,12 @@ public class StunMessage {
 
             // Type
             let attributeTypeValue = UInt(exactly: Int(data[offset++]) << 8 | Int(data[offset++]))!
-//            print("attributeTypeValue \(String(attributeTypeValue, radix: 16))")
             guard let attributetype = AttributeType.init(rawValue: attributeTypeValue) else {
-//                print("Invalid STUN message type value !!")
                 throw StunMessageError.IllegalArgumentException(msg: "Invalid STUN message type value !")
             }
             
             // Length
             let length = Int(data[offset++]) << 8 | Int(data[offset++])
-//            print("length \(length)")
-//            print("attributetype \(attributetype)")
             
             // MAPPED-ADDRESS
             switch attributetype {
@@ -315,11 +305,11 @@ public class StunMessage {
            |                             Value                             ....
            +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
         */
-        if (mappedAddress != nil) {
+        if mappedAddress != nil {
             StunMessage.storeEndPoint(type: AttributeType.MappedAddress, endPoint: mappedAddress!, message: &msg, offset: &offset)
-        } else if (responseAddress != nil) {
+        } else if responseAddress != nil {
             StunMessage.storeEndPoint(type: AttributeType.ResponseAddress, endPoint: responseAddress!, message: &msg, offset: &offset)
-        } else if (changeRequest != nil) {
+        } else if changeRequest != nil {
             /*
                 The CHANGE-REQUEST attribute is used by the client to request that
                 the server use a different address and/or port when sending the
@@ -352,11 +342,11 @@ public class StunMessage {
             msg[offset++] = 0
             msg[offset++] = 0
             msg[offset++] = UInt8((changeRequest!.changeIp ? 1 : 0) << 2 | (changeRequest!.changePort ? 1 : 0) << 1)
-        } else if (sourceAddress != nil) {
+        } else if sourceAddress != nil {
             StunMessage.storeEndPoint(type: AttributeType.SourceAddress, endPoint: sourceAddress!, message: &msg, offset: &offset)
-        } else if (changedAddress != nil) {
+        } else if changedAddress != nil {
             StunMessage.storeEndPoint(type: AttributeType.ChangedAddress, endPoint: changedAddress!, message: &msg, offset: &offset)
-        } else if (errorCode != nil) {
+        } else if errorCode != nil {
             /* 3489 11.2.9.
                 0                   1                   2                   3
                 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -391,11 +381,7 @@ public class StunMessage {
         msg[3] = UInt8((offset - 20) & 0xFF);
 
         // Make retVal with actual size.
-        var retVal: [UInt8] = [UInt8](msg[0..<offset]);
-//        for (index, _) in retVal.enumerated() {
-//            retVal[index] = msg[index]
-//        }
-        return retVal
+        return [UInt8](msg[0..<offset]);
     }
     
     private static func parseIPAddr(data: [UInt8], offset: inout Int) -> SocketAddress {

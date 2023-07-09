@@ -12,6 +12,7 @@ import Network
 public class UdpSocket {
     private var timer: SwiftTimer?
     var connection: NWConnection?
+    var ready: Bool = false
     
     init(_ host: String, _ port: Int) {
         // Transmited message:
@@ -20,17 +21,20 @@ public class UdpSocket {
         self.connection?.stateUpdateHandler = { (newState) in
             switch (newState) {
             case .ready: do {
-                print("State: Ready\n")
+                self.ready = true
                 sema.signal()
             }
-            case .setup:
-                print("State: Setup\n")
-            case .cancelled:
-                print("State: Cancelled\n")
-            case .preparing:
-                print("State: Preparing\n")
+//            case .setup:
+//                print("State: Setup\n")
+//            case .cancelled:
+//                print("State: Cancelled\n")
+//            case .preparing:
+//                print("State: Preparing\n")
+//            case .waiting(let error):
+//                print(error.localizedDescription)
             default:
                 print("ERROR! State not defined!\n")
+                sema.signal()
             }
         }
         self.connection?.start(queue: .global())
@@ -38,13 +42,14 @@ public class UdpSocket {
     }
     
     func sendUDP(_ data: Data, _ timeout: DispatchTimeInterval = .seconds(3)) -> Data? {
+        guard ready == true else {
+            return nil
+        }
         let sema = DispatchSemaphore(value: 0)
         var result: Data?
         self.connection?.send(content: data, completion: NWConnection.SendCompletion.contentProcessed(({ (NWError) in
-            if (NWError == nil) {
-                print("Data was sent to UDP")
+            if NWError == nil {
                 self.timer = SwiftTimer(interval: timeout, queue: .global()) {_ in
-                    print("timeout")
                     sema.signal()
                 }
                 self.timer?.start()
@@ -53,10 +58,8 @@ public class UdpSocket {
             }
         })))
         self.connection?.receiveMessage { (data, context, isComplete, error) in
-            print("timer?.suspend")
             self.timer?.suspend()
-            if (isComplete) {
-                print("Receive is complete")
+            if isComplete {
                 result = data
                 sema.signal()
             }

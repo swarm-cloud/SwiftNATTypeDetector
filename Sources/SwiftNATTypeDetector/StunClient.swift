@@ -12,8 +12,7 @@ enum TransactionError: Error {
     case transactionException(msg: String)
 }
 
-@available(iOS 12.0, *)
-@available(macOS 10.14, *)
+@available(iOS 12.0, macOS 10.14, tvOS 12.0, *)
 public class StunClient {
     private static let UDP_SEND_COUNT: Int = 2
     private static let TRANSACTION_TIMEOUT: Int = 1000
@@ -105,16 +104,16 @@ public class StunClient {
                 let test2Response = try doTransaction(request: test2, remoteEndPoint: remoteEndPoint, timeout: .milliseconds(TRANSACTION_TIMEOUT))
                 // Open Internet.
                 if test2Response != nil {
-                    return StunResult(natType: .OpenInternet, ipAddr: test1Resp.mappedAddress)
+                    return StunResult(natType: .OpenInternet, ipAddr: test1ResponseMapedAddress)
                 }
                 // Symmetric UDP firewall.
-                return StunResult(natType: .SymmetricUdpFirewall, ipAddr: test1Resp.mappedAddress)
+                return StunResult(natType: .SymmetricUdpFirewall, ipAddr: test1ResponseMapedAddress)
             } else {
                 // NAT
                 let test2Response = try doTransaction(request: test2, remoteEndPoint: remoteEndPoint, timeout: .milliseconds(TRANSACTION_TIMEOUT))
                 // Full cone NAT.
                 if test2Response != nil {
-                    return StunResult(natType: .FullCone, ipAddr: test1Resp.mappedAddress)
+                    return StunResult(natType: .FullCone, ipAddr: test1ResponseMapedAddress)
                 }
                 /*
                         If no response is received, it performs test I again, but this time, does so to
@@ -151,7 +150,7 @@ public class StunClient {
                 // Port restricted
                 return StunResult(natType: .PortRestrictedCone, ipAddr: test1ResponseMapedAddress)
             }
-        } catch let error {
+        } catch _ {
             return StunResult(natType: .Unknown)
         }
         

@@ -8,8 +8,7 @@
 import Foundation
 import Network
 
-@available(iOS 12.0, *)
-@available(macOS 10.14, *)
+@available(iOS 12.0, macOS 10.14, tvOS 12.0, *)
 public class UdpSocket {
     private var timer: SwiftTimer?
     var connection: NWConnection?

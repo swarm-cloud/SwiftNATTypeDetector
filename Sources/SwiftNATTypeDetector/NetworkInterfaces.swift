@@ -7,11 +7,11 @@
 
 import Foundation
 
-public class NetworkInterfaces {
+open class NetworkInterfaces {
     public struct NetworkInterfaceInfo {
-        let name: String
-        let ip: String
-        let netmask: String
+        public let name: String
+        public let ip: String
+        public let netmask: String
     }
     public static func enumerate() -> [NetworkInterfaceInfo] {
         var interfaces = [NetworkInterfaceInfo]()
